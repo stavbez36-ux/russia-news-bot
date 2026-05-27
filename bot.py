@@ -14,6 +14,8 @@ RSS_FEEDS = [
     "https://tass.ru/rss/v2.xml"
 ]
 
+MIN_POST_INTERVAL = 600
+
 sent_links = set()
 sent_titles = []
 
@@ -131,9 +133,15 @@ def get_image_from_article(url):
             }
         )
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
 
-        meta = soup.find("meta", property="og:image")
+        meta = soup.find(
+            "meta",
+            property="og:image"
+        )
 
         if meta and meta.get("content"):
             return meta["content"]
@@ -165,7 +173,10 @@ def send_post(photo, text):
 
         if photo:
 
-            url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+            url = (
+                f"https://api.telegram.org/"
+                f"bot{TOKEN}/sendPhoto"
+            )
 
             data = {
                 "chat_id": CHANNEL_ID,
@@ -176,7 +187,10 @@ def send_post(photo, text):
 
         else:
 
-            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+            url = (
+                f"https://api.telegram.org/"
+                f"bot{TOKEN}/sendMessage"
+            )
 
             data = {
                 "chat_id": CHANNEL_ID,
@@ -216,21 +230,32 @@ def get_news():
                 title = entry.title
                 link = entry.link
 
-                full_text = f"{title} {link}"
+                full_text = (
+                    f"{title} {link}"
+                )
 
-                category = detect_category(full_text)
+                category = detect_category(
+                    full_text
+                )
 
                 if not category:
                     continue
 
                 if is_similar(title):
-                    print("⛔ Дубль пропущен:", title)
+
+                    print(
+                        "⛔ Дубль пропущен:",
+                        title
+                    )
+
                     continue
 
                 sent_links.add(link)
                 sent_titles.append(title)
 
-                photo = get_image_from_article(link)
+                photo = get_image_from_article(
+                    link
+                )
 
                 post = create_post(
                     category,
@@ -238,7 +263,9 @@ def get_news():
                     link
                 )
 
-                news.append((photo, post))
+                news.append(
+                    (photo, post)
+                )
 
         except Exception as e:
 
@@ -249,7 +276,10 @@ def get_news():
 
 async def main():
 
-    print("🚨 ЧП бот запущен")
+    print(
+        "🚨 ЧП бот "
+        "с умным интервалом запущен"
+    )
 
     while True:
 
@@ -258,21 +288,45 @@ async def main():
             news = get_news()
 
             if not news:
-                print("📰 Новых новостей нет")
+
+                print(
+                    "📰 Новых новостей нет"
+                )
+
+                await asyncio.sleep(120)
+
+                continue
+
+            print(
+                f"📰 Найдено новостей: "
+                f"{len(news)}"
+            )
 
             for photo, post in news:
 
                 send_post(photo, post)
 
-                print("✅ Новость опубликована")
+                print(
+                    "✅ Новость опубликована"
+                )
 
-                await asyncio.sleep(10)
+                print(
+                    f"⏰ Следующий пост "
+                    f"через "
+                    f"{MIN_POST_INTERVAL // 60} "
+                    f"минут"
+                )
 
-            await asyncio.sleep(120)
+                await asyncio.sleep(
+                    MIN_POST_INTERVAL
+                )
 
         except Exception as e:
 
-            print("Общая ошибка:", e)
+            print(
+                "Общая ошибка:",
+                e
+            )
 
             await asyncio.sleep(30)
 
