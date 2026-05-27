@@ -14,7 +14,7 @@ RSS_FEEDS = [
     "https://tass.ru/rss/v2.xml"
 ]
 
-sent = set()
+sent_links = set()
 sent_titles = []
 
 CATEGORIES = {
@@ -23,20 +23,23 @@ CATEGORIES = {
         "дтп",
         "авария",
         "столкнов",
-        "машин"
+        "машин",
+        "автомоб"
     ],
 
     "🔥 Пожар": [
         "пожар",
         "горел",
-        "огонь"
+        "огонь",
+        "возгорание"
     ],
 
-    "☠️ Убийство": [
+    "☠️ Криминал": [
         "убил",
         "убийство",
         "зарезал",
-        "труп"
+        "труп",
+        "застрел"
     ],
 
     "💥 Взрыв": [
@@ -47,8 +50,9 @@ CATEGORIES = {
 
     "🚨 ЧП": [
         "происшествие",
+        "катастроф",
         "нападение",
-        "катастроф"
+        "обрушение"
     ]
 }
 
@@ -67,17 +71,49 @@ def detect_category(text):
     return None
 
 
+def clean_title(title):
+
+    title = title.lower()
+
+    bad_words = [
+        "в россии",
+        "в москве",
+        "в мире",
+        "сегодня",
+        "произошло",
+        "случилось"
+    ]
+
+    for word in bad_words:
+        title = title.replace(word, "")
+
+    return title.strip()
+
+
 def is_similar(title):
+
+    title = clean_title(title)
+
+    words1 = set(title.split())
 
     for old_title in sent_titles:
 
+        old_title = clean_title(old_title)
+
+        words2 = set(old_title.split())
+
+        common_words = words1.intersection(words2)
+
+        if len(common_words) >= 2:
+            return True
+
         similarity = SequenceMatcher(
             None,
-            title.lower(),
-            old_title.lower()
+            title,
+            old_title
         ).ratio()
 
-        if similarity > 0.7:
+        if similarity > 0.50:
             return True
 
     return False
@@ -87,13 +123,19 @@ def get_image_from_article(url):
 
     try:
 
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            timeout=10,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            }
+        )
 
         soup = BeautifulSoup(response.text, "html.parser")
 
         meta = soup.find("meta", property="og:image")
 
-        if meta:
+        if meta and meta.get("content"):
             return meta["content"]
 
     except:
@@ -119,30 +161,41 @@ def create_post(category, title, link):
 
 def send_post(photo, text):
 
-    if photo:
+    try:
 
-        url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+        if photo:
 
-        data = {
-            "chat_id": CHANNEL_ID,
-            "photo": photo,
-            "caption": text,
-            "parse_mode": "HTML"
-        }
+            url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
 
-    else:
+            data = {
+                "chat_id": CHANNEL_ID,
+                "photo": photo,
+                "caption": text,
+                "parse_mode": "HTML"
+            }
 
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        else:
 
-        data = {
-            "chat_id": CHANNEL_ID,
-            "text": text,
-            "parse_mode": "HTML"
-        }
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-    response = requests.post(url, data=data, timeout=30)
+            data = {
+                "chat_id": CHANNEL_ID,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": False
+            }
 
-    print(response.text)
+        response = requests.post(
+            url,
+            data=data,
+            timeout=30
+        )
+
+        print(response.text)
+
+    except Exception as e:
+
+        print("Ошибка отправки:", e)
 
 
 def get_news():
@@ -151,41 +204,52 @@ def get_news():
 
     for feed_url in RSS_FEEDS:
 
-        feed = feedparser.parse(feed_url)
+        try:
 
-        for entry in feed.entries[:5]:
+            feed = feedparser.parse(feed_url)
 
-            if entry.link in sent:
-                continue
+            for entry in feed.entries[:10]:
 
-            title = entry.title
-            link = entry.link
+                if entry.link in sent_links:
+                    continue
 
-            full_text = f"{title} {link}"
+                title = entry.title
+                link = entry.link
 
-            category = detect_category(full_text)
+                full_text = f"{title} {link}"
 
-            if not category:
-                continue
+                category = detect_category(full_text)
 
-            if is_similar(title):
-                continue
+                if not category:
+                    continue
 
-            sent.add(entry.link)
-            sent_titles.append(title)
+                if is_similar(title):
+                    print("⛔ Дубль пропущен:", title)
+                    continue
 
-            photo = get_image_from_article(link)
+                sent_links.add(link)
+                sent_titles.append(title)
 
-            post = create_post(category, title, link)
+                photo = get_image_from_article(link)
 
-            news.append((photo, post))
+                post = create_post(
+                    category,
+                    title,
+                    link
+                )
+
+                news.append((photo, post))
+
+        except Exception as e:
+
+            print("Ошибка RSS:", e)
 
     return news
 
 
 async def main():
 
-    print("🚨 ЧП бот с антидублями запущен")
+    print("🚨 ЧП бот запущен")
 
     while True:
 
@@ -193,21 +257,24 @@ async def main():
 
             news = get_news()
 
+            if not news:
+                print("📰 Новых новостей нет")
+
             for photo, post in news:
 
                 send_post(photo, post)
 
                 print("✅ Новость опубликована")
 
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(120)
 
         except Exception as e:
 
-            print("Ошибка:", e)
+            print("Общая ошибка:", e)
 
-            await asyncio.sleep(15)
+            await asyncio.sleep(30)
 
 
 asyncio.run(main())
