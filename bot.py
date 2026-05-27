@@ -3,6 +3,7 @@ import feedparser
 import requests
 
 from bs4 import BeautifulSoup
+from difflib import SequenceMatcher
 
 TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
 CHANNEL_ID = "-1004260226565"
@@ -14,6 +15,7 @@ RSS_FEEDS = [
 ]
 
 sent = set()
+sent_titles = []
 
 CATEGORIES = {
 
@@ -63,6 +65,22 @@ def detect_category(text):
                 return category
 
     return None
+
+
+def is_similar(title):
+
+    for old_title in sent_titles:
+
+        similarity = SequenceMatcher(
+            None,
+            title.lower(),
+            old_title.lower()
+        ).ratio()
+
+        if similarity > 0.7:
+            return True
+
+    return False
 
 
 def get_image_from_article(url):
@@ -150,7 +168,11 @@ def get_news():
             if not category:
                 continue
 
+            if is_similar(title):
+                continue
+
             sent.add(entry.link)
+            sent_titles.append(title)
 
             photo = get_image_from_article(link)
 
@@ -163,7 +185,7 @@ def get_news():
 
 async def main():
 
-    print("🚨 ЧП бот с реальными фото запущен")
+    print("🚨 ЧП бот с антидублями запущен")
 
     while True:
 
