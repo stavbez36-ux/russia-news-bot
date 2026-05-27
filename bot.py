@@ -16,6 +16,8 @@ RSS_FEEDS = [
 
 MIN_POST_INTERVAL = 600
 
+MEMORY_FILE = "sent_news.txt"
+
 sent_links = set()
 sent_titles = []
 
@@ -59,6 +61,36 @@ CATEGORIES = {
 }
 
 
+def load_memory():
+
+    try:
+
+        with open(MEMORY_FILE, "r", encoding="utf-8") as file:
+
+            for line in file:
+
+                line = line.strip()
+
+                if line:
+
+                    sent_links.add(line)
+
+    except:
+
+        pass
+
+
+def save_memory(link):
+
+    with open(
+        MEMORY_FILE,
+        "a",
+        encoding="utf-8"
+    ) as file:
+
+        file.write(link + "\n")
+
+
 def detect_category(text):
 
     text = text.lower()
@@ -80,13 +112,12 @@ def clean_title(title):
     bad_words = [
         "в россии",
         "в москве",
-        "в мире",
         "сегодня",
-        "произошло",
-        "случилось"
+        "произошло"
     ]
 
     for word in bad_words:
+
         title = title.replace(word, "")
 
     return title.strip()
@@ -144,9 +175,11 @@ def get_image_from_article(url):
         )
 
         if meta and meta.get("content"):
+
             return meta["content"]
 
     except:
+
         return None
 
     return None
@@ -195,8 +228,7 @@ def send_post(photo, text):
             data = {
                 "chat_id": CHANNEL_ID,
                 "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": False
+                "parse_mode": "HTML"
             }
 
         response = requests.post(
@@ -224,11 +256,11 @@ def get_news():
 
             for entry in feed.entries[:10]:
 
-                if entry.link in sent_links:
-                    continue
-
-                title = entry.title
                 link = entry.link
+                title = entry.title
+
+                if link in sent_links:
+                    continue
 
                 full_text = (
                     f"{title} {link}"
@@ -244,7 +276,7 @@ def get_news():
                 if is_similar(title):
 
                     print(
-                        "⛔ Дубль пропущен:",
+                        "⛔ Дубль:",
                         title
                     )
 
@@ -252,6 +284,8 @@ def get_news():
 
                 sent_links.add(link)
                 sent_titles.append(title)
+
+                save_memory(link)
 
                 photo = get_image_from_article(
                     link
@@ -276,9 +310,11 @@ def get_news():
 
 async def main():
 
+    load_memory()
+
     print(
         "🚨 ЧП бот "
-        "с умным интервалом запущен"
+        "с памятью запущен"
     )
 
     while True:
@@ -308,13 +344,6 @@ async def main():
 
                 print(
                     "✅ Новость опубликована"
-                )
-
-                print(
-                    f"⏰ Следующий пост "
-                    f"через "
-                    f"{MIN_POST_INTERVAL // 60} "
-                    f"минут"
                 )
 
                 await asyncio.sleep(
