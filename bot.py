@@ -1,7 +1,8 @@
 import asyncio
-import random
 import feedparser
 import requests
+
+from bs4 import BeautifulSoup
 
 TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
 CHANNEL_ID = "-1004260226565"
@@ -16,77 +17,47 @@ sent = set()
 
 CATEGORIES = {
 
-    "🚗 ДТП": {
-        "words": [
-            "дтп",
-            "авария",
-            "столкнов",
-            "машин"
-        ],
+    "🚗 ДТП": [
+        "дтп",
+        "авария",
+        "столкнов",
+        "машин"
+    ],
 
-        "photo": "https://images.unsplash.com/photo-1503376780353-7e6692767b70"
-    },
+    "🔥 Пожар": [
+        "пожар",
+        "горел",
+        "огонь"
+    ],
 
-    "🔥 Пожар": {
-        "words": [
-            "пожар",
-            "горел",
-            "огонь",
-            "возгорание"
-        ],
+    "☠️ Убийство": [
+        "убил",
+        "убийство",
+        "зарезал",
+        "труп"
+    ],
 
-        "photo": "https://images.unsplash.com/photo-1516728778615-2d590ea1856b"
-    },
+    "💥 Взрыв": [
+        "взрыв",
+        "детонация",
+        "бомба"
+    ],
 
-    "☠️ Убийство": {
-        "words": [
-            "убил",
-            "убийство",
-            "зарезал",
-            "труп"
-        ],
-
-        "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9"
-    },
-
-    "💥 Взрыв": {
-        "words": [
-            "взрыв",
-            "детонация",
-            "бомба"
-        ],
-
-        "photo": "https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2"
-    },
-
-    "🚨 ЧП": {
-        "words": [
-            "происшествие",
-            "катастроф",
-            "нападение",
-            "обрушение"
-        ],
-
-        "photo": "https://images.unsplash.com/photo-1521295121783-8a321d551ad2"
-    }
+    "🚨 ЧП": [
+        "происшествие",
+        "нападение",
+        "катастроф"
+    ]
 }
-
-AI_PHRASES = [
-    "По предварительным данным,",
-    "Как сообщают источники,",
-    "Стало известно, что",
-    "По имеющейся информации,",
-    "Очевидцы сообщают,"
-]
 
 
 def detect_category(text):
 
     text = text.lower()
 
-    for category, data in CATEGORIES.items():
+    for category, words in CATEGORIES.items():
 
-        for word in data["words"]:
+        for word in words:
 
             if word in text:
                 return category
@@ -94,28 +65,31 @@ def detect_category(text):
     return None
 
 
-def ai_rewrite(title):
+def get_image_from_article(url):
 
-    phrase = random.choice(AI_PHRASES)
+    try:
 
-    title = title.replace("В России", "")
-    title = title.replace("в России", "")
+        response = requests.get(url, timeout=10)
 
-    rewritten = f"{phrase} {title.lower()}."
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    rewritten = rewritten.capitalize()
+        meta = soup.find("meta", property="og:image")
 
-    return rewritten
+        if meta:
+            return meta["content"]
+
+    except:
+        return None
+
+    return None
 
 
 def create_post(category, title, link):
 
-    rewritten = ai_rewrite(title)
-
     text = f"""
 {category}
 
-📰 <b>{rewritten}</b>
+📰 <b>{title}</b>
 
 🔗 <a href="{link}">Читать подробнее</a>
 
@@ -125,18 +99,28 @@ def create_post(category, title, link):
     return text
 
 
-def send_post(category, text):
+def send_post(photo, text):
 
-    photo = CATEGORIES[category]["photo"]
+    if photo:
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+        url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
 
-    data = {
-        "chat_id": CHANNEL_ID,
-        "photo": photo,
-        "caption": text,
-        "parse_mode": "HTML"
-    }
+        data = {
+            "chat_id": CHANNEL_ID,
+            "photo": photo,
+            "caption": text,
+            "parse_mode": "HTML"
+        }
+
+    else:
+
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+
+        data = {
+            "chat_id": CHANNEL_ID,
+            "text": text,
+            "parse_mode": "HTML"
+        }
 
     response = requests.post(url, data=data, timeout=30)
 
@@ -168,16 +152,18 @@ def get_news():
 
             sent.add(entry.link)
 
+            photo = get_image_from_article(link)
+
             post = create_post(category, title, link)
 
-            news.append((category, post))
+            news.append((photo, post))
 
     return news
 
 
 async def main():
 
-    print("🤖 AI ЧП бот запущен")
+    print("🚨 ЧП бот с реальными фото запущен")
 
     while True:
 
@@ -185,11 +171,11 @@ async def main():
 
             news = get_news()
 
-            for category, post in news:
+            for photo, post in news:
 
-                send_post(category, post)
+                send_post(photo, post)
 
-                print("✅ AI новость опубликована")
+                print("✅ Новость опубликована")
 
                 await asyncio.sleep(5)
 
