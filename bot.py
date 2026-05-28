@@ -60,6 +60,29 @@ BAD_WORDS = [
     "советы",
     "рецепт"
 ]
+HOT_WORDS = [
+
+    "погиб",
+    "умер",
+    "убил",
+    "убийство",
+    "теракт",
+    "взрыв",
+    "пожар",
+    "эвакуация",
+    "обрушение",
+    "нападение",
+    "стрельба",
+    "дрон",
+    "бпла",
+    "беспилотник",
+    "ранен",
+    "пострадал",
+    "чп",
+    "дтп",
+    "авария",
+    "катастрофа"
+]
 CATEGORIES = {
 
     "🚗 ДТП": [
@@ -112,13 +135,12 @@ CATEGORIES = {
 
 
 def load_memory():
-
     try:
 
         with open(
-            MEMORY_FILE,
-            "r",
-            encoding="utf-8"
+                MEMORY_FILE,
+                "r",
+                encoding="utf-8"
         ) as file:
 
             for line in file:
@@ -133,18 +155,15 @@ def load_memory():
 
 
 def save_memory(link):
-
     with open(
-        MEMORY_FILE,
-        "a",
-        encoding="utf-8"
+            MEMORY_FILE,
+            "a",
+            encoding="utf-8"
     ) as file:
-
         file.write(link + "\n")
 
 
 def detect_category(text):
-
     text = text.lower()
 
     for category, words in CATEGORIES.items():
@@ -158,7 +177,6 @@ def detect_category(text):
 
 
 def clean_title(title):
-
     title = title.lower()
 
     bad_words = [
@@ -169,14 +187,12 @@ def clean_title(title):
     ]
 
     for word in bad_words:
-
         title = title.replace(word, "")
 
     return title.strip()
 
 
 def is_similar(title):
-
     title = clean_title(title)
 
     words1 = set(title.split())
@@ -205,7 +221,6 @@ def is_similar(title):
 
 
 def get_image_from_article(url):
-
     try:
 
         response = requests.get(
@@ -236,9 +251,24 @@ def get_image_from_article(url):
 
 
 def ai_rewrite(title, category):
-
     text = title
+    urgent_words = [
 
+        "погиб",
+        "взрыв",
+        "теракт",
+        "стрельба",
+        "убийство"
+    ]
+
+    if any(
+            word in text.lower()
+            for word in urgent_words
+    ):
+        text = (
+                "⚡ СРОЧНО: "
+                + text
+        )
     replacements = {
 
         "произошло": "случилось",
@@ -252,7 +282,6 @@ def ai_rewrite(title, category):
     }
 
     for old, new in replacements.items():
-
         text = text.replace(old, new)
 
     if category == "🚗 ДТП":
@@ -291,8 +320,9 @@ def ai_rewrite(title, category):
         )
 
     return text
-def make_hashtags(category, title):
 
+
+def make_hashtags(category, title):
     tags = ["#Новости"]
 
     if "🚗" in category:
@@ -315,8 +345,8 @@ def make_hashtags(category, title):
 
     return " ".join(tags)
 
-def create_post(category, title, link):
 
+def create_post(category, title, link):
     hashtags = make_hashtags(
         category,
         title
@@ -336,7 +366,6 @@ def create_post(category, title, link):
 
 
 def send_post(photo, text):
-
     try:
 
         if photo:
@@ -380,7 +409,6 @@ def send_post(photo, text):
 
 
 def get_news():
-
     news = []
 
     for feed_url in RSS_FEEDS:
@@ -400,6 +428,11 @@ def get_news():
                 full_text = (
                     f"{title} {link}"
                 )
+                if not any(
+                    word in full_text.lower()
+                    for word in HOT_WORDS
+                ):
+                    continue
                 if any(
                         word in full_text.lower()
                         for word in BAD_WORDS
@@ -413,7 +446,6 @@ def get_news():
                     continue
 
                 if is_similar(title):
-
                     print(
                         "⛔ Дубль:",
                         title
@@ -423,7 +455,6 @@ def get_news():
 
                 sent_links.add(link)
                 sent_titles.append(title)
-               
 
                 save_memory(link)
 
@@ -454,7 +485,6 @@ def get_news():
 
 
 async def main():
-
     load_memory()
 
     print(
@@ -468,7 +498,6 @@ async def main():
             news = get_news()
 
             if not news:
-
                 print(
                     "📰 Новых новостей нет"
                 )
@@ -483,7 +512,6 @@ async def main():
             )
 
             for photo, post in news:
-
                 send_post(photo, post)
 
                 print(
