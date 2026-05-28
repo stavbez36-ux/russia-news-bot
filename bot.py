@@ -5,8 +5,8 @@ import requests
 from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
 
-TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
-CHANNEL_ID = "-1004260226565"
+TOKEN = "ТВОЙ_ТОКЕН"
+CHANNEL_ID = "-100ТВОЙ_ID"
 
 RSS_FEEDS = [
 
@@ -48,6 +48,7 @@ MEMORY_FILE = "sent_news.txt"
 
 sent_links = set()
 sent_titles = []
+
 BAD_WORDS = [
 
     "реклама",
@@ -60,6 +61,7 @@ BAD_WORDS = [
     "советы",
     "рецепт"
 ]
+
 HOT_WORDS = [
 
     "погиб",
@@ -83,6 +85,7 @@ HOT_WORDS = [
     "авария",
     "катастрофа"
 ]
+
 CATEGORIES = {
 
     "🚗 ДТП": [
@@ -133,14 +136,53 @@ CATEGORIES = {
     ]
 }
 
+CITIES = {
+
+    "Москва": [
+        "москв",
+        "московск"
+    ],
+
+    "Санкт-Петербург": [
+        "питер",
+        "санкт-петерб",
+        "спб"
+    ],
+
+    "Самара": [
+        "самар"
+    ],
+
+    "Волгоград": [
+        "волгогра"
+    ],
+
+    "Екатеринбург": [
+        "екатеринбург",
+        "екб"
+    ],
+
+    "Казань": [
+        "казан"
+    ],
+
+    "Ставрополь": [
+        "ставрополь",
+        "минводы",
+        "пятигорск",
+        "кисловодск"
+    ]
+}
+
 
 def load_memory():
+
     try:
 
         with open(
-                MEMORY_FILE,
-                "r",
-                encoding="utf-8"
+            MEMORY_FILE,
+            "r",
+            encoding="utf-8"
         ) as file:
 
             for line in file:
@@ -155,15 +197,18 @@ def load_memory():
 
 
 def save_memory(link):
+
     with open(
-            MEMORY_FILE,
-            "a",
-            encoding="utf-8"
+        MEMORY_FILE,
+        "a",
+        encoding="utf-8"
     ) as file:
+
         file.write(link + "\n")
 
 
 def detect_category(text):
+
     text = text.lower()
 
     for category, words in CATEGORIES.items():
@@ -176,7 +221,22 @@ def detect_category(text):
     return None
 
 
+def detect_city(text):
+
+    text = text.lower()
+
+    for city, keywords in CITIES.items():
+
+        for kw in keywords:
+
+            if kw in text:
+                return city
+
+    return None
+
+
 def clean_title(title):
+
     title = title.lower()
 
     bad_words = [
@@ -187,12 +247,14 @@ def clean_title(title):
     ]
 
     for word in bad_words:
+
         title = title.replace(word, "")
 
     return title.strip()
 
 
 def is_similar(title):
+
     title = clean_title(title)
 
     words1 = set(title.split())
@@ -221,6 +283,7 @@ def is_similar(title):
 
 
 def get_image_from_article(url):
+
     try:
 
         response = requests.get(
@@ -251,7 +314,9 @@ def get_image_from_article(url):
 
 
 def ai_rewrite(title, category):
+
     text = title
+
     urgent_words = [
 
         "погиб",
@@ -262,13 +327,15 @@ def ai_rewrite(title, category):
     ]
 
     if any(
-            word in text.lower()
-            for word in urgent_words
+        word in text.lower()
+        for word in urgent_words
     ):
+
         text = (
-                "⚡ СРОЧНО: "
-                + text
+            "⚡ СРОЧНО: "
+            + text
         )
+
     replacements = {
 
         "произошло": "случилось",
@@ -282,6 +349,7 @@ def ai_rewrite(title, category):
     }
 
     for old, new in replacements.items():
+
         text = text.replace(old, new)
 
     if category == "🚗 ДТП":
@@ -323,6 +391,7 @@ def ai_rewrite(title, category):
 
 
 def make_hashtags(category, title):
+
     tags = ["#Новости"]
 
     if "🚗" in category:
@@ -337,20 +406,25 @@ def make_hashtags(category, title):
     if "💥" in category:
         tags.append("#Взрыв")
 
-    if "Москва" in title:
-        tags.append("#Москва")
-
-    if "Питер" in title:
-        tags.append("#Питер")
-
     return " ".join(tags)
 
 
-def create_post(category, title, link):
+def create_post(
+    category,
+    title,
+    link,
+    city=None
+):
+
     hashtags = make_hashtags(
         category,
         title
     )
+
+    city_tag = ""
+
+    if city:
+        city_tag = f" #{city}"
 
     text = f"""
 {category}
@@ -359,13 +433,14 @@ def create_post(category, title, link):
 
 🔗 <a href="{link}">Источник</a>
 
-{hashtags}
+{hashtags}{city_tag}
 """
 
     return text
 
 
 def send_post(photo, text):
+
     try:
 
         if photo:
@@ -409,6 +484,7 @@ def send_post(photo, text):
 
 
 def get_news():
+
     news = []
 
     for feed_url in RSS_FEEDS:
@@ -428,16 +504,19 @@ def get_news():
                 full_text = (
                     f"{title} {link}"
                 )
+
                 if not any(
                     word in full_text.lower()
                     for word in HOT_WORDS
                 ):
                     continue
+
                 if any(
-                        word in full_text.lower()
-                        for word in BAD_WORDS
+                    word in full_text.lower()
+                    for word in BAD_WORDS
                 ):
                     continue
+
                 category = detect_category(
                     full_text
                 )
@@ -446,6 +525,7 @@ def get_news():
                     continue
 
                 if is_similar(title):
+
                     print(
                         "⛔ Дубль:",
                         title
@@ -467,10 +547,13 @@ def get_news():
                     category
                 )
 
+                city = detect_city(title)
+
                 post = create_post(
                     category,
                     title,
-                    link
+                    link,
+                    city
                 )
 
                 news.append(
@@ -484,7 +567,45 @@ def get_news():
     return news
 
 
+def create_digest(
+    news_list,
+    max_items=10
+):
+
+    if not news_list:
+        return None
+
+    digest_text = (
+        "📰 <b>Главное "
+        "за последний час:</b>\n\n"
+    )
+
+    count = 0
+
+    for _, post in news_list:
+
+        first_line = (
+            post.strip().split("\n")[2]
+        )
+
+        digest_text += (
+            f"• {first_line}\n"
+        )
+
+        count += 1
+
+        if count >= max_items:
+            break
+
+    digest_text += (
+        "\n#Сводка #Новости #Россия"
+    )
+
+    return digest_text
+
+
 async def main():
+
     load_memory()
 
     print(
@@ -498,6 +619,7 @@ async def main():
             news = get_news()
 
             if not news:
+
                 print(
                     "📰 Новых новостей нет"
                 )
@@ -511,7 +633,10 @@ async def main():
                 f"{len(news)}"
             )
 
-            for photo, post in news:
+            all_news = news
+
+            for photo, post in all_news:
+
                 send_post(photo, post)
 
                 print(
@@ -527,6 +652,22 @@ async def main():
 
                 await asyncio.sleep(
                     MIN_POST_INTERVAL
+                )
+
+            digest = create_digest(
+                all_news,
+                max_items=10
+            )
+
+            if digest:
+
+                send_post(
+                    None,
+                    digest
+                )
+
+                print(
+                    "📝 Опубликована сводка"
                 )
 
         except Exception as e:
