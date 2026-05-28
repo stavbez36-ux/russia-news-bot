@@ -9,9 +9,37 @@ TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
 CHANNEL_ID = "-1004260226565"
 
 RSS_FEEDS = [
+
+    # Россия
     "https://lenta.ru/rss/news",
     "https://ria.ru/export/rss2/archive/index.xml",
-    "https://tass.ru/rss/v2.xml"
+    "https://tass.ru/rss/v2.xml",
+
+    # ЧП / происшествия
+    "https://www.mk.ru/rss/index.xml",
+    "https://aif.ru/rss/all.php",
+    "https://ren.tv/export/yandex-news.rss",
+    "https://life.ru/xml/feed.xml",
+
+    # Регионы
+    "https://bloknot.ru/rss",
+    "https://news.ru/rss/index.xml",
+    "https://fedpress.ru/rss",
+    "https://svpressa.ru/rss/all.xml",
+
+    # Политика / события
+    "https://iz.ru/xml/rss/all.xml",
+    "https://www.gazeta.ru/export/rss/lenta.xml",
+    "https://ura.news/rss",
+
+    # Экстренные новости
+    "https://tvzvezda.ru/export/rss/news.xml",
+    "https://argumenti.ru/rss/news",
+    "https://vm.ru/rss/news",
+
+    # Криминал / ДТП
+    "https://www.interfax.ru/rss.asp",
+    "https://www.kp.ru/rss/allsections.xml",
 ]
 
 MIN_POST_INTERVAL = 600
