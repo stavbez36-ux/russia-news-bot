@@ -1,6 +1,7 @@
 import asyncio
 import feedparser
 import requests
+import random
 
 from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
@@ -49,6 +50,21 @@ RSS_FEEDS = [
     "https://rg.ru/xml/index.xml",
     "https://news.mail.ru/rss/",
     "https://www.bfm.ru/news.rss",
+
+    # Крупные СМИ
+    "https://www.fontanka.ru/fontanka.rss",
+    "https://www.47news.ru/export/rss.xml",
+    "https://www.ntv.ru/novosti/rss/",
+    "https://www.vesti.ru/vesti.rss",
+    "https://rg.ru/xml/index.xml",
+    "https://news.mail.ru/rss/",
+    "https://www.bfm.ru/news.rss",
+
+    # Регионы / ЧП
+    "https://www.e1.ru/text/rss.region.xml",
+    "https://www.ngs.ru/text/rss.region.xml",
+    "https://161.ru/text/rss.region.xml",
+    "https://74.ru/text/rss.region.xml",
 ]
 
 MIN_POST_INTERVAL = 600
@@ -390,18 +406,42 @@ def get_image_from_article(url):
 
     return None
 
-
 def ai_rewrite(title, category):
 
-    text = title
+    text = title.strip()
+
+    replacements = {
+
+        "произошло": "случилось",
+        "автомобиль": "машина",
+        "транспортное средство": "авто",
+        "мужчина": "человек",
+        "женщина": "местная жительница",
+        "в результате": "из-за",
+        "совершил": "устроил",
+        "здание": "дом",
+        "подросток": "школьник",
+        "сотрудники полиции": "полицейские",
+        "правоохранители": "силовики",
+        "гражданин": "местный житель"
+    }
+
+    for old, new in replacements.items():
+
+        text = text.replace(
+            old,
+            new
+        )
 
     urgent_words = [
 
         "погиб",
-        "взрыв",
         "теракт",
+        "взрыв",
         "стрельба",
-        "убийство"
+        "убийство",
+        "дрон",
+        "бпла"
     ]
 
     if any(
@@ -414,55 +454,74 @@ def ai_rewrite(title, category):
             + text
         )
 
-    replacements = {
-
-        "произошло": "случилось",
-        "автомобиль": "машина",
-        "транспортное средство": "авто",
-        "мужчина": "человек",
-        "женщина": "местная жительница",
-        "Российской Федерации": "России",
-        "в результате": "из-за",
-        "совершил": "устроил"
-    }
-
-    for old, new in replacements.items():
-
-        text = text.replace(old, new)
-
     if category == "🚗 ДТП":
+
+        endings = [
+
+            "На месте уже работают экстренные службы.",
+            "Информация о пострадавших уточняется.",
+            "Очевидцы публикуют кадры с места аварии."
+        ]
 
         text = (
             f"🚗 {text}. "
-            f"На месте работают службы."
+            f"{random.choice(endings)}"
         )
 
     elif category == "🔥 Пожар":
 
+        endings = [
+
+            "Спасатели прибыли на место.",
+            "Очевидцы сообщают о густом дыме.",
+            "Пожарные продолжают тушение."
+        ]
+
         text = (
             f"🔥 {text}. "
-            f"Спасатели уже прибыли."
+            f"{random.choice(endings)}"
         )
 
     elif category == "☠️ Криминал":
 
+        endings = [
+
+            "Полиция выясняет обстоятельства.",
+            "На месте работают следователи.",
+            "Подробности происшествия уточняются."
+        ]
+
         text = (
             f"☠️ {text}. "
-            f"Полиция выясняет детали."
+            f"{random.choice(endings)}"
         )
 
     elif category == "💥 Взрыв":
 
+        endings = [
+
+            "Информация уточняется.",
+            "На место направлены экстренные службы.",
+            "Очевидцы сообщают о сильном хлопке."
+        ]
+
         text = (
             f"💥 {text}. "
-            f"Информация уточняется."
+            f"{random.choice(endings)}"
         )
 
     else:
 
+        endings = [
+
+            "Подробности появляются.",
+            "Информация уточняется.",
+            "Очевидцы делятся кадрами."
+        ]
+
         text = (
             f"🚨 {text}. "
-            f"Подробности появляются."
+            f"{random.choice(endings)}"
         )
 
     return text
