@@ -93,18 +93,20 @@ def load_memory():
 
     try:
 
-        with open(MEMORY_FILE, "r", encoding="utf-8") as file:
+        with open(
+            MEMORY_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
 
             for line in file:
 
                 line = line.strip()
 
                 if line:
-
                     sent_links.add(line)
 
     except:
-
         pass
 
 
@@ -203,11 +205,9 @@ def get_image_from_article(url):
         )
 
         if meta and meta.get("content"):
-
             return meta["content"]
 
     except:
-
         return None
 
     return None
@@ -270,10 +270,6 @@ def ai_rewrite(title, category):
 
     return text
 
-	title = ai_rewrite(
-    title,
-    category
-)
 
 def create_post(category, title, link):
 
@@ -381,6 +377,11 @@ def get_news():
                     link
                 )
 
+                title = ai_rewrite(
+                    title,
+                    category
+                )
+
                 post = create_post(
                     category,
                     title,
@@ -403,8 +404,7 @@ async def main():
     load_memory()
 
     print(
-        "🚨 ЧП бот "
-        "с памятью запущен"
+        "🚨 ЧП бот запущен"
     )
 
     while True:
@@ -434,6 +434,13 @@ async def main():
 
                 print(
                     "✅ Новость опубликована"
+                )
+
+                print(
+                    f"⏰ Следующий пост "
+                    f"через "
+                    f"{MIN_POST_INTERVAL // 60} "
+                    f"минут"
                 )
 
                 await asyncio.sleep(
