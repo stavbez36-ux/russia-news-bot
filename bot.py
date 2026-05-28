@@ -5,8 +5,8 @@ import requests
 from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
 
-TOKEN = "ТВОЙ_ТОКЕН"
-CHANNEL_ID = "-100ТВОЙ_ID"
+TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
+CHANNEL_ID = "-1004260226565"
 
 RSS_FEEDS = [
 
@@ -40,6 +40,15 @@ RSS_FEEDS = [
     # Криминал / ДТП
     "https://www.interfax.ru/rss.asp",
     "https://www.kp.ru/rss/allsections.xml",
+
+    # Дополнительные СМИ
+    "https://www.fontanka.ru/fontanka.rss",
+    "https://www.47news.ru/export/rss.xml",
+    "https://www.ntv.ru/novosti/rss/",
+    "https://www.vesti.ru/vesti.rss",
+    "https://rg.ru/xml/index.xml",
+    "https://news.mail.ru/rss/",
+    "https://www.bfm.ru/news.rss",
 ]
 
 MIN_POST_INTERVAL = 600
@@ -299,16 +308,66 @@ def get_image_from_article(url):
             "html.parser"
         )
 
-        meta = soup.find(
-            "meta",
-            property="og:image"
+        selectors = [
+
+            ("meta", "property", "og:image"),
+            ("meta", "name", "twitter:image")
+        ]
+
+        for tag, attr, value in selectors:
+
+            meta = soup.find(
+                tag,
+                attrs={
+                    attr: value
+                }
+            )
+
+            if (
+                meta
+                and meta.get("content")
+            ):
+
+                return meta["content"]
+
+        # fallback обычных img
+
+        images = soup.find_all("img")
+
+        for img in images:
+
+            src = img.get("src")
+
+            if not src:
+                continue
+
+            if (
+                "logo" in src
+                or "icon" in src
+            ):
+                continue
+
+            if src.startswith("//"):
+                src = "https:" + src
+
+            elif src.startswith("/"):
+
+                domain = (
+                    url.split("/")[0]
+                    + "//"
+                    + url.split("/")[2]
+                )
+
+                src = domain + src
+
+            return src
+
+    except Exception as e:
+
+        print(
+            "Ошибка фото:",
+            e
         )
-
-        if meta and meta.get("content"):
-            return meta["content"]
-
-    except:
-        return None
 
     return None
 
