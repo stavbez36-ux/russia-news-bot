@@ -56,14 +56,16 @@ CATEGORIES = {
         "авария",
         "столкнов",
         "машин",
-        "автомоб"
+        "автомоб",
+        "сбил"
     ],
 
     "🔥 Пожар": [
         "пожар",
         "горел",
         "огонь",
-        "возгорание"
+        "возгорание",
+        "дым"
     ],
 
     "☠️ Криминал": [
@@ -71,20 +73,29 @@ CATEGORIES = {
         "убийство",
         "зарезал",
         "труп",
-        "застрел"
+        "застрел",
+        "напал",
+        "избил"
     ],
 
     "💥 Взрыв": [
         "взрыв",
         "детонация",
-        "бомба"
+        "бомба",
+        "хлопок"
+    ],
+
+    "🌊 Катастрофа": [
+        "обрушение",
+        "затопление",
+        "ураган",
+        "землетрясение"
     ],
 
     "🚨 ЧП": [
         "происшествие",
         "катастроф",
-        "нападение",
-        "обрушение"
+        "нападение"
     ]
 }
 
@@ -269,18 +280,45 @@ def ai_rewrite(title, category):
         )
 
     return text
+def make_hashtags(category, title):
 
+    tags = ["#Новости"]
+
+    if "🚗" in category:
+        tags.append("#ДТП")
+
+    if "🔥" in category:
+        tags.append("#Пожар")
+
+    if "☠️" in category:
+        tags.append("#Криминал")
+
+    if "💥" in category:
+        tags.append("#Взрыв")
+
+    if "Москва" in title:
+        tags.append("#Москва")
+
+    if "Питер" in title:
+        tags.append("#Питер")
+
+    return " ".join(tags)
 
 def create_post(category, title, link):
+
+    hashtags = make_hashtags(
+        category,
+        title
+    )
 
     text = f"""
 {category}
 
 📰 <b>{title}</b>
 
-🔗 <a href="{link}">Читать подробнее</a>
+🔗 <a href="{link}">Источник</a>
 
-#Россия #Новости
+{hashtags}
 """
 
     return text
@@ -351,7 +389,11 @@ def get_news():
                 full_text = (
                     f"{title} {link}"
                 )
-
+                if any(
+                        word in full_text.lower()
+                        for word in BAD_WORDS
+                ):
+                    continue
                 category = detect_category(
                     full_text
                 )
@@ -370,6 +412,18 @@ def get_news():
 
                 sent_links.add(link)
                 sent_titles.append(title)
+                BAD_WORDS = [
+
+                    "реклама",
+                    "скидк",
+                    "маркет",
+                    "рейтинг",
+                    "тест",
+                    "обзор",
+                    "что лучше",
+                    "советы",
+                    "рецепт"
+                ]
 
                 save_memory(link)
 
