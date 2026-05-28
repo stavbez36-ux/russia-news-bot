@@ -213,6 +213,68 @@ def get_image_from_article(url):
     return None
 
 
+def ai_rewrite(title, category):
+
+    text = title
+
+    replacements = {
+
+        "произошло": "случилось",
+        "автомобиль": "машина",
+        "транспортное средство": "авто",
+        "мужчина": "человек",
+        "женщина": "местная жительница",
+        "Российской Федерации": "России",
+        "в результате": "из-за",
+        "совершил": "устроил"
+    }
+
+    for old, new in replacements.items():
+
+        text = text.replace(old, new)
+
+    if category == "🚗 ДТП":
+
+        text = (
+            f"🚗 {text}. "
+            f"На месте работают службы."
+        )
+
+    elif category == "🔥 Пожар":
+
+        text = (
+            f"🔥 {text}. "
+            f"Спасатели уже прибыли."
+        )
+
+    elif category == "☠️ Криминал":
+
+        text = (
+            f"☠️ {text}. "
+            f"Полиция выясняет детали."
+        )
+
+    elif category == "💥 Взрыв":
+
+        text = (
+            f"💥 {text}. "
+            f"Информация уточняется."
+        )
+
+    else:
+
+        text = (
+            f"🚨 {text}. "
+            f"Подробности появляются."
+        )
+
+    return text
+
+	title = ai_rewrite(
+    title,
+    category
+)
+
 def create_post(category, title, link):
 
     text = f"""
