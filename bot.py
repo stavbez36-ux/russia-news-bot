@@ -48,7 +48,18 @@ MEMORY_FILE = "sent_news.txt"
 
 sent_links = set()
 sent_titles = []
+BAD_WORDS = [
 
+    "реклама",
+    "скидк",
+    "маркет",
+    "рейтинг",
+    "тест",
+    "обзор",
+    "что лучше",
+    "советы",
+    "рецепт"
+]
 CATEGORIES = {
 
     "🚗 ДТП": [
@@ -412,18 +423,7 @@ def get_news():
 
                 sent_links.add(link)
                 sent_titles.append(title)
-                BAD_WORDS = [
-
-                    "реклама",
-                    "скидк",
-                    "маркет",
-                    "рейтинг",
-                    "тест",
-                    "обзор",
-                    "что лучше",
-                    "советы",
-                    "рецепт"
-                ]
+               
 
                 save_memory(link)
 
