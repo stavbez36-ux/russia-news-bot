@@ -58,6 +58,9 @@ MEMORY_FILE = "sent_news.txt"
 sent_links = set()
 sent_titles = []
 
+category_stats = {}
+city_stats = {}
+
 BAD_WORDS = [
 
     "реклама",
@@ -242,6 +245,22 @@ def detect_city(text):
                 return city
 
     return None
+
+def update_stats(category, city):
+
+    if category:
+
+        if category not in category_stats:
+            category_stats[category] = 0
+
+        category_stats[category] += 1
+
+    if city:
+
+        if city not in city_stats:
+            city_stats[city] = 0
+
+        city_stats[city] += 1
 
 
 def clean_title(title):
@@ -608,6 +627,11 @@ def get_news():
 
                 city = detect_city(title)
 
+                update_stats(
+                    category,
+                    city
+                )
+
                 post = create_post(
                     category,
                     title,
@@ -661,6 +685,26 @@ def create_digest(
     )
 
     return digest_text
+
+def create_stats_report():
+
+    text = "📊 <b>Статистика новостей:</b>\n\n"
+
+    text += "📰 По категориям:\n"
+
+    for category, count in category_stats.items():
+
+        text += f"{category} — {count}\n"
+
+    text += "\n🏙 По городам:\n"
+
+    for city, count in city_stats.items():
+
+        text += f"#{city} — {count}\n"
+
+    text += "\n#Статистика #Новости"
+
+    return text
 
 
 async def main():
@@ -727,6 +771,16 @@ async def main():
 
                 print(
                     "📝 Опубликована сводка"
+                )
+                stats_post = create_stats_report()
+
+                send_post(
+                    None,
+                    stats_post
+                )
+
+                print(
+                    "📊 Статистика опубликована"
                 )
 
         except Exception as e:
