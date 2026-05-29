@@ -1,8 +1,6 @@
 import asyncio
 import feedparser
 import requests
-import random
-
 from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
 
@@ -10,47 +8,29 @@ TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
 CHANNEL_ID = "-1004260226565"
 
 RSS_FEEDS = [
-
-    # Россия
     "https://lenta.ru/rss/news",
     "https://ria.ru/export/rss2/archive/index.xml",
     "https://tass.ru/rss/v2.xml",
-
-    # ЧП / происшествия
     "https://www.mk.ru/rss/index.xml",
     "https://aif.ru/rss/all.php",
     "https://ren.tv/export/yandex-news.rss",
     "https://life.ru/xml/feed.xml",
-
-    # Регионы
     "https://bloknot.ru/rss",
     "https://news.ru/rss/index.xml",
     "https://fedpress.ru/rss",
     "https://svpressa.ru/rss/all.xml",
-
-    # Политика / события
     "https://iz.ru/xml/rss/all.xml",
+    "https://www.gazeta.ru/export/rss/lenta.xml",
     "https://ura.news/rss",
-
-    # Экстренные новости
     "https://tvzvezda.ru/export/rss/news.xml",
     "https://vm.ru/rss/news",
-
-    # Криминал / ДТП
     "https://www.interfax.ru/rss.asp",
     "https://www.kp.ru/rss/allsections.xml",
-
-    # Дополнительные СМИ
     "https://www.fontanka.ru/fontanka.rss",
     "https://www.47news.ru/export/rss.xml",
     "https://www.ntv.ru/novosti/rss/",
     "https://www.vesti.ru/vesti.rss",
     "https://rg.ru/xml/index.xml",
-
-
-
-
-    # Регионы / ЧП
     "https://www.e1.ru/text/rss.region.xml",
     "https://www.ngs.ru/text/rss.region.xml",
     "https://161.ru/text/rss.region.xml",
@@ -58,395 +38,138 @@ RSS_FEEDS = [
 ]
 
 MIN_POST_INTERVAL = 600
-
 MEMORY_FILE = "sent_news.txt"
 
 sent_links = set()
 sent_titles = []
 recent_hashes = set()
 
-category_stats = {}
-city_stats = {}
-
 BAD_WORDS = [
-
-    "реклама",
-    "скидк",
-    "маркет",
-    "рейтинг",
-    "тест",
-    "обзор",
-    "что лучше",
-    "советы",
-    "рецепт"
+    "реклама", "скидк", "маркет", "рейтинг", "тест",
+    "обзор", "что лучше", "советы", "рецепт"
 ]
 
 HOT_WORDS = [
-
-    "погиб",
-    "умер",
-    "убил",
-    "убийство",
-    "теракт",
-    "взрыв",
-    "пожар",
-    "эвакуация",
-    "обрушение",
-    "нападение",
-    "стрельба",
-    "дрон",
-    "бпла",
-    "беспилотник",
-    "ранен",
-    "пострадал",
-    "чп",
-    "дтп",
-    "авария",
-    "катастрофа"
+    "погиб", "умер", "убил", "убийство", "теракт",
+    "взрыв", "пожар", "эвакуация", "обрушение",
+    "нападение", "стрельба", "дрон", "бпла", "беспилотник",
+    "ранен", "пострадал", "чп", "дтп", "авария", "катастрофа"
 ]
 
 CATEGORIES = {
-
-    "🚗 ДТП": [
-        "дтп",
-        "авария",
-        "столкнов",
-        "машин",
-        "автомоб",
-        "сбил"
-    ],
-
-    "🔥 Пожар": [
-        "пожар",
-        "горел",
-        "огонь",
-        "возгорание",
-        "дым"
-    ],
-
-    "☠️ Криминал": [
-        "убил",
-        "убийство",
-        "зарезал",
-        "труп",
-        "застрел",
-        "напал",
-        "избил"
-    ],
-
-    "💥 Взрыв": [
-        "взрыв",
-        "детонация",
-        "бомба",
-        "хлопок"
-    ],
-
-    "🌊 Катастрофа": [
-        "обрушение",
-        "затопление",
-        "ураган",
-        "землетрясение"
-    ],
-
-    "🚨 ЧП": [
-        "происшествие",
-        "катастроф",
-        "нападение"
-    ]
+    "🚗 ДТП": ["дтп", "авария", "столкнов", "машин", "автомоб", "перевернул"],
+    "🔥 Пожар": ["пожар", "горел", "огонь", "возгорание", "дым"],
+    "☠️ Криминал": ["убил", "убийство", "зарезал", "труп", "застрел", "напал", "избил"],
+    "💥 Взрыв": ["взрыв", "детонация", "бомба", "хлопок"],
+    "🛩 БПЛА": ["дрон", "бпла", "беспилотник", "пво"],
+    "🌊 Катастрофа": ["обрушение", "затопление", "ураган", "землетрясение"],
+    "🚨 ЧП": ["происшествие", "нападение", "теракт", "стрельба"]
 }
 
 CITIES = {
-
-    "Москва": [
-        "москв",
-        "московск"
-    ],
-
-    "Санкт-Петербург": [
-        "питер",
-        "санкт-петерб",
-        "спб"
-    ],
-
-    "Самара": [
-        "самар"
-    ],
-
-    "Волгоград": [
-        "волгогра"
-    ],
-
-    "Екатеринбург": [
-        "екатеринбург",
-        "екб"
-    ],
-
-    "Казань": [
-        "казан"
-    ],
-
-    "Ставрополь": [
-        "ставрополь",
-        "минводы",
-        "пятигорск",
-        "кисловодск"
-    ]
+    "Москва": ["москв", "московск"],
+    "Санкт-Петербург": ["питер", "санкт-петерб", "спб"],
+    "Самара": ["самар"],
+    "Волгоград": ["волгогра"],
+    "Екатеринбург": ["екатеринбург", "екб"],
+    "Казань": ["казан"],
+    "Ставрополь": ["ставрополь", "минводы", "пятигорск", "кисловодск"]
 }
 
 
 def load_memory():
-
     try:
-
-        with open(
-            MEMORY_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            for line in file:
-
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+            for line in f:
                 line = line.strip()
-
                 if line:
                     sent_links.add(line)
-
     except:
         pass
 
 
 def save_memory(link):
-
-    with open(
-        MEMORY_FILE,
-        "a",
-        encoding="utf-8"
-    ) as file:
-
-        file.write(link + "\n")
+    with open(MEMORY_FILE, "a", encoding="utf-8") as f:
+        f.write(link + "\n")
 
 
 def detect_category(text):
-
     text = text.lower()
-
-    for category, words in CATEGORIES.items():
-
-        for word in words:
-
-            if word in text:
-                return category
-
+    for cat, words in CATEGORIES.items():
+        for w in words:
+            if w in text:
+                return cat
     return None
 
 
 def detect_city(text):
-
     text = text.lower()
-
     for city, keywords in CITIES.items():
-
         for kw in keywords:
-
             if kw in text:
                 return city
-
     return None
 
+
 def update_stats(category, city):
-
     if category:
-
-        if category not in category_stats:
-            category_stats[category] = 0
-
-        category_stats[category] += 1
-
+        category_stats[category] = category_stats.get(category, 0) + 1
     if city:
-
-        if city not in city_stats:
-            city_stats[city] = 0
-
-        city_stats[city] += 1
+        city_stats[city] = city_stats.get(city, 0) + 1
 
 
 def clean_title(title):
-
     title = title.lower()
-
     bad_words = [
-
-        "в россии",
-        "в москве",
-        "сегодня",
-        "произошло",
-        "случилось",
-        "появилось",
-        "сообщается",
-        "стало известно",
-        "опубликовано",
-        "видео",
-        "фото",
-        "последствия",
-        "подробности",
-        "очевидцы",
-        "экстренные службы",
-        "на месте",
-        ":",
-        ",",
-        ".",
-        "!"
+        "в россии", "в москве", "сегодня", "произошло",
+        "случилось", "появилось", "сообщается", "стало известно",
+        "опубликовано", "видео", "фото", "последствия",
+        "подробности", "очевидцы", "экстренные службы", "на месте",
+        ":", ",", ".", "!"
     ]
-
-    for word in bad_words:
-
-        title = title.replace(
-            word,
-            ""
-        )
-
+    for w in bad_words:
+        title = title.replace(w, "")
     return " ".join(title.split())
 
+
 def make_news_hash(title):
-
-    title = clean_title(title)
-
-    words = title.split()
-
-    # убираем короткие слова
-    words = [
-        word
-        for word in words
-        if len(word) > 3
-    ]
-
-    # убираем дубли слов
-    words = list(set(words))
-
-    # НЕ сортируем
-    # берём первые важные слова
-    words = words[:7]
-
-    return " ".join(words)
+    words = [w for w in clean_title(title).split() if len(w) > 3]
+    return " ".join(list(dict.fromkeys(words))[:7])
 
 
 def is_similar(title):
-
-    title = clean_title(title)
-
-    words1 = set(title.split())
-
-    for old_title in sent_titles:
-
-        old_title = clean_title(old_title)
-
-        words2 = set(old_title.split())
-
-        common_words = words1.intersection(words2)
-
-        # если совпало много слов
-        if len(common_words) >= 3:
+    words1 = set(clean_title(title).split())
+    for old in sent_titles:
+        words2 = set(clean_title(old).split())
+        if len(words1.intersection(words2)) >= 3:
             return True
-
-        similarity = SequenceMatcher(
-            None,
-            title,
-            old_title
-        ).ratio()
-
-        # очень жёсткий фильтр
-        if similarity >= 0.82:
+        if SequenceMatcher(None, title, old).ratio() >= 0.82:
             return True
-
     return False
 
 
 def get_image_from_article(url):
-
     try:
-
-        response = requests.get(
-            url,
-            timeout=10,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            }
-        )
-
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
-
-        selectors = [
-
-            ("meta", "property", "og:image"),
-            ("meta", "name", "twitter:image")
-        ]
-
-        for tag, attr, value in selectors:
-
-            meta = soup.find(
-                tag,
-                attrs={
-                    attr: value
-                }
-            )
-
-            if (
-                meta
-                and meta.get("content")
-            ):
-
+        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        soup = BeautifulSoup(r.text, "html.parser")
+        for tag, attr, val in [("meta", "property", "og:image"), ("meta", "name", "twitter:image")]:
+            meta = soup.find(tag, attrs={attr: val})
+            if meta and meta.get("content"):
                 return meta["content"]
-
-        # fallback обычных img
-
-        images = soup.find_all("img")
-
-        for img in images:
-
+        for img in soup.find_all("img"):
             src = img.get("src")
-
-            if not src:
+            if not src or "logo" in src or "icon" in src:
                 continue
-
-            if (
-                "logo" in src
-                or "icon" in src
-            ):
-                continue
-
-            if src.startswith("//"):
-                src = "https:" + src
-
-            elif src.startswith("/"):
-
-                domain = (
-                    url.split("/")[0]
-                    + "//"
-                    + url.split("/")[2]
-                )
-
-                src = domain + src
-
+            if src.startswith("//"): src = "https:" + src
+            elif src.startswith("/"): src = url.split("/")[0] + "//" + url.split("/")[2] + src
             return src
-
     except Exception as e:
-
-        print(
-            "Ошибка фото:",
-            e
-        )
-
+        print("Ошибка фото:", e)
     return None
 
+
 def ai_rewrite(title, category):
-
-    text = title.strip()
-
     replacements = {
-
         "произошло": "случилось",
         "автомобиль": "машина",
         "транспортное средство": "авто",
@@ -455,76 +178,26 @@ def ai_rewrite(title, category):
         "в результате": "из-за",
         "совершил": "устроил",
     }
-
     for old, new in replacements.items():
-
-        text = text.replace(
-            old,
-            new
-        )
-
-    urgent_words = [
-
-        "погиб",
-        "теракт",
-        "взрыв",
-        "стрельба",
-        "убийство",
-        "дрон",
-        "бпла"
-    ]
-
-    if any(
-        word in text.lower()
-        for word in urgent_words
-    ):
-
-        text = (
-            "⚡ "
-            + text
-        )
-
-    return text
+        title = title.replace(old, new)
+    if any(w in title.lower() for w in ["погиб","теракт","взрыв","стрельба","убийство","дрон","бпла"]):
+        title = "⚡ " + title
+    return title.strip()
 
 
 def make_hashtags(category, title):
-
     tags = ["#Новости"]
-
-    if "🚗" in category:
-        tags.append("#ДТП")
-
-    if "🔥" in category:
-        tags.append("#Пожар")
-
-    if "☠️" in category:
-        tags.append("#Криминал")
-
-    if "💥" in category:
-        tags.append("#Взрыв")
-
+    if "🚗" in category: tags.append("#ДТП")
+    if "🔥" in category: tags.append("#Пожар")
+    if "☠️" in category: tags.append("#Криминал")
+    if "💥" in category: tags.append("#Взрыв")
     return " ".join(tags)
 
 
-def create_post(
-    category,
-    title,
-    link,
-    city=None
-):
-
-    hashtags = make_hashtags(
-        category,
-        title
-    )
-
-    city_tag = ""
-
-    if city:
-        city_tag = f" #{city}"
-
-    text = f"""
-{category}
+def create_post(category, title, link, city=None):
+    hashtags = make_hashtags(category, title)
+    city_tag = f" #{city}" if city else ""
+    return f"""{category}
 
 📰 <b>{title}</b>
 
@@ -533,326 +206,110 @@ def create_post(
 {hashtags}{city_tag}
 """
 
-    return text
-
 
 def send_post(photo, text):
-
     try:
-
         if photo:
-
-            url = (
-                f"https://api.telegram.org/"
-                f"bot{TOKEN}/sendPhoto"
-            )
-
-            data = {
-                "chat_id": CHANNEL_ID,
-                "photo": photo,
-                "caption": text,
-                "parse_mode": "HTML"
-            }
-
+            url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+            data = {"chat_id": CHANNEL_ID, "photo": photo, "caption": text, "parse_mode": "HTML"}
         else:
-
-            url = (
-                f"https://api.telegram.org/"
-                f"bot{TOKEN}/sendMessage"
-            )
-
-            data = {
-                "chat_id": CHANNEL_ID,
-                "text": text,
-                "parse_mode": "HTML"
-            }
-
-        response = requests.post(
-            url,
-            data=data,
-            timeout=30
-        )
-
-        print(response.text)
-
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+            data = {"chat_id": CHANNEL_ID, "text": text, "parse_mode": "HTML"}
+        r = requests.post(url, data=data, timeout=30)
+        print(r.text)
     except Exception as e:
-
         print("Ошибка отправки:", e)
 
 
 def get_news():
-
     news = []
-
-    # локальные антидубли
     local_hashes = set()
     local_links = set()
 
     for feed_url in RSS_FEEDS:
-
         try:
-
             feed = feedparser.parse(feed_url)
-
             for entry in feed.entries[:10]:
-
                 link = entry.link.strip()
                 title = entry.title.strip()
-
-                # уже отправляли ссылку
-                if (
-                    not link
-                    or link in sent_links
-                    or link in local_links
-                ):
+                if not link or link in sent_links or link in local_links:
                     continue
+                full_text = f"{title} {link}"
+                if not any(w in full_text.lower() for w in HOT_WORDS): continue
+                if any(w in full_text.lower() for w in BAD_WORDS): continue
+                category = detect_category(full_text)
+                if not category: continue
+                news_hash = make_news_hash(title)
+                if is_similar(title) or news_hash in recent_hashes or news_hash in local_hashes: continue
 
-                full_text = (
-                    f"{title} {link}"
-                )
-
-                # фильтр горячих слов
-                if not any(
-                    word in full_text.lower()
-                    for word in HOT_WORDS
-                ):
-                    continue
-
-                # мусорные новости
-                if any(
-                    word in full_text.lower()
-                    for word in BAD_WORDS
-                ):
-                    continue
-
-                # категория
-                category = detect_category(
-                    full_text
-                )
-
-                if not category:
-                    continue
-
-                # hash новости
-                news_hash = make_news_hash(
-                    title
-                )
-
-                # антидубли
-                if (
-                    is_similar(title)
-                    or news_hash in recent_hashes
-                    or news_hash in local_hashes
-                ):
-
-                    continue
-
-                # сохраняем оригинальный заголовок
                 original_title = title
+                title = ai_rewrite(title, category)
+                photo = get_image_from_article(link)
+                city = detect_city(original_title)
+                update_stats(category, city)
+                post = create_post(category, title, link, city)
 
-                # переписываем
-                title = ai_rewrite(
-                    title,
-                    category
-                )
-
-                # фото
-                photo = get_image_from_article(
-                    link
-                )
-
-                # город
-                city = detect_city(
-                    original_title
-                )
-
-                # статистика
-                update_stats(
-                    category,
-                    city
-                )
-
-                # пост
-                post = create_post(
-                    category,
-                    title,
-                    link,
-                    city
-                )
-
-                # сохраняем в память
                 sent_links.add(link)
-
                 local_links.add(link)
-
-                sent_titles.append(
-                    original_title
-                )
-
-                recent_hashes.add(
-                    news_hash
-                )
-
-                local_hashes.add(
-                    news_hash
-                )
-
+                sent_titles.append(original_title)
+                recent_hashes.add(news_hash)
+                local_hashes.add(news_hash)
                 save_memory(link)
 
                 # защита памяти
-                if len(recent_hashes) > 1000:
-                    recent_hashes.clear()
+                if len(recent_hashes) > 1000: recent_hashes.clear()
+                if len(sent_titles) > 2000: sent_titles.clear()
 
-                if len(sent_titles) > 2000:
-                    sent_titles.clear()
-
-                # добавляем новость
-                news.append(
-                    (photo, post)
-                )
+                news.append((photo, post))
 
         except Exception as e:
-
-            print(
-                "Ошибка RSS:",
-                e
-            )
+            print("Ошибка RSS:", e)
 
     return news
 
 
-def create_digest(
-    news_list,
-    max_items=10
-):
-
-    if not news_list:
-        return None
-
-    digest_text = (
-        "📰 <b>Главное "
-        "за последний час:</b>\n\n"
-    )
-
-    count = 0
-
-    for _, post in news_list:
-
-        first_line = (
-            post.strip().split("\n")[2]
-        )
-
-        digest_text += (
-            f"• {first_line}\n"
-        )
-
-        count += 1
-
-        if count >= max_items:
-            break
-
-    digest_text += (
-        "\n#Сводка #Новости #Россия"
-    )
-
+def create_digest(news_list, max_items=10):
+    if not news_list: return None
+    digest_text = "📰 <b>Главное за последний час:</b>\n\n"
+    for _, post in news_list[:max_items]:
+        first_line = post.strip().split("\n")[2]
+        digest_text += f"• {first_line}\n"
+    digest_text += "\n#Сводка #Новости #Россия"
     return digest_text
-
-def create_stats_report():
-
-    text = "📊 <b>Статистика новостей:</b>\n\n"
-
-    text += "📰 По категориям:\n"
-
-    for category, count in category_stats.items():
-
-        text += f"{category} — {count}\n"
-
-    text += "\n🏙 По городам:\n"
-
-    for city, count in city_stats.items():
-
-        text += f"#{city} — {count}\n"
-
-    text += "\n#Статистика #Новости"
-
-    return text
 
 
 async def main():
-
     load_memory()
-
-    print(
-        "🚨 ЧП бот запущен"
-    )
+    print("🚨 ЧП бот запущен")
 
     while True:
-
         try:
-
             news = get_news()
-
             if not news:
-
-                print(
-                    "📰 Новых новостей нет"
-                )
-
+                print("📰 Новых новостей нет")
                 await asyncio.sleep(120)
-
                 continue
 
-            print(
-                f"📰 Найдено новостей: "
-                f"{len(news)}"
-            )
-
-            all_news = news
+            print(f"📰 Найдено новостей: {len(news)}")
+            posted_posts = set()
 
             # публикуем новости
-            for photo, post in all_news:
-
+            for photo, post in news:
+                if post in posted_posts:
+                    continue
+                posted_posts.add(post)
                 send_post(photo, post)
+                print("✅ Новость опубликована")
+                await asyncio.sleep(MIN_POST_INTERVAL)
 
-                print(
-                    "✅ Новость опубликована"
-                )
-
-                print(
-                    f"⏰ Следующий пост "
-                    f"через "
-                    f"{MIN_POST_INTERVAL // 60} "
-                    f"минут"
-                )
-
-                await asyncio.sleep(
-                    MIN_POST_INTERVAL
-                )
-
-            # сводка только ОДИН раз
-            digest = create_digest(
-                all_news,
-                max_items=10
-            )
-
+            # сводка один раз
+            digest = create_digest(news, max_items=10)
             if digest:
-
-                send_post(
-                    None,
-                    digest
-                )
-
-                print(
-                    "📝 Опубликована сводка"
-                )
+                send_post(None, digest)
+                print("📝 Опубликована сводка")
 
         except Exception as e:
-
-            print(
-                "Общая ошибка:",
-                e
-            )
-
+            print("Общая ошибка:", e)
             await asyncio.sleep(30)
 
 
