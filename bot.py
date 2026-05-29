@@ -594,9 +594,10 @@ def get_news():
 
             for entry in feed.entries[:10]:
 
-                link = entry.link
-                title = entry.title
+                link = entry.link.strip()
+                title = entry.title.strip()
 
+                # ссылка уже была
                 if link in sent_links:
                     continue
 
@@ -604,12 +605,14 @@ def get_news():
                     f"{title} {link}"
                 )
 
+                # фильтр горячих слов
                 if not any(
                     word in full_text.lower()
                     for word in HOT_WORDS
                 ):
                     continue
 
+                # мусорные новости
                 if any(
                     word in full_text.lower()
                     for word in BAD_WORDS
@@ -623,13 +626,19 @@ def get_news():
                 if not category:
                     continue
 
-                news_hash = make_news_hash(title)
+                # hash новости
+                news_hash = make_news_hash(
+                    title
+                )
 
+                # мощный антидубль
                 if (
-                        is_similar(title)
-                        or news_hash in recent_hashes
-                        or news_hash in local_hashes
+                    is_similar(title)
+                    or news_hash in recent_hashes
+                    or news_hash in local_hashes
+                    or link in sent_links
                 ):
+
                     print(
                         "⛔ Дубль:",
                         title
@@ -637,20 +646,22 @@ def get_news():
 
                     continue
 
-                save_memory(link)
-
-                photo = get_image_from_article(
-                    link
-                )
-
+                # сохраняем оригинал
                 original_title = title
 
+                # AI rewrite
                 title = ai_rewrite(
                     title,
                     category
                 )
 
-                city = detect_city(title)
+                photo = get_image_from_article(
+                    link
+                )
+
+                city = detect_city(
+                    original_title
+                )
 
                 update_stats(
                     category,
@@ -664,10 +675,29 @@ def get_news():
                     city
                 )
 
+                # сохраняем
                 sent_links.add(link)
-                sent_titles.append(original_title)
-                recent_hashes.add(news_hash)
-                local_hashes.add(news_hash)
+
+                sent_titles.append(
+                    original_title
+                )
+
+                recent_hashes.add(
+                    news_hash
+                )
+
+                local_hashes.add(
+                    news_hash
+                )
+
+                save_memory(link)
+
+                # защита от разрастания памяти
+                if len(recent_hashes) > 1000:
+                    recent_hashes.clear()
+
+                if len(sent_titles) > 2000:
+                    sent_titles.clear()
 
                 news.append(
                     (photo, post)
@@ -675,7 +705,10 @@ def get_news():
 
         except Exception as e:
 
-            print("Ошибка RSS:", e)
+            print(
+                "Ошибка RSS:",
+                e
+            )
 
     return news
 
