@@ -311,7 +311,7 @@ def is_similar(title):
 
         common_words = words1.intersection(words2)
 
-        if len(common_words) >= 2:
+        if len(common_words) >= 4:
             return True
 
         similarity = SequenceMatcher(
@@ -320,7 +320,7 @@ def is_similar(title):
             old_title
         ).ratio()
 
-        if similarity > 0.50:
+        if similarity > 0.75:
             return True
 
     return False
@@ -419,11 +419,6 @@ def ai_rewrite(title, category):
         "женщина": "местная жительница",
         "в результате": "из-за",
         "совершил": "устроил",
-        "здание": "дом",
-        "подросток": "школьник",
-        "сотрудники полиции": "полицейские",
-        "правоохранители": "силовики",
-        "гражданин": "местный житель"
     }
 
     for old, new in replacements.items():
@@ -450,78 +445,8 @@ def ai_rewrite(title, category):
     ):
 
         text = (
-            "⚡ СРОЧНО: "
+            "⚡ "
             + text
-        )
-
-    if category == "🚗 ДТП":
-
-        endings = [
-
-            "На месте уже работают экстренные службы.",
-            "Информация о пострадавших уточняется.",
-            "Очевидцы публикуют кадры с места аварии."
-        ]
-
-        text = (
-            f"🚗 {text}. "
-            f"{random.choice(endings)}"
-        )
-
-    elif category == "🔥 Пожар":
-
-        endings = [
-
-            "Спасатели прибыли на место.",
-            "Очевидцы сообщают о густом дыме.",
-            "Пожарные продолжают тушение."
-        ]
-
-        text = (
-            f"🔥 {text}. "
-            f"{random.choice(endings)}"
-        )
-
-    elif category == "☠️ Криминал":
-
-        endings = [
-
-            "Полиция выясняет обстоятельства.",
-            "На месте работают следователи.",
-            "Подробности происшествия уточняются."
-        ]
-
-        text = (
-            f"☠️ {text}. "
-            f"{random.choice(endings)}"
-        )
-
-    elif category == "💥 Взрыв":
-
-        endings = [
-
-            "Информация уточняется.",
-            "На место направлены экстренные службы.",
-            "Очевидцы сообщают о сильном хлопке."
-        ]
-
-        text = (
-            f"💥 {text}. "
-            f"{random.choice(endings)}"
-        )
-
-    else:
-
-        endings = [
-
-            "Подробности появляются.",
-            "Информация уточняется.",
-            "Очевидцы делятся кадрами."
-        ]
-
-        text = (
-            f"🚨 {text}. "
-            f"{random.choice(endings)}"
         )
 
     return text
@@ -822,7 +747,6 @@ async def main():
             )
 
             if digest:
-
                 send_post(
                     None,
                     digest
@@ -831,16 +755,17 @@ async def main():
                 print(
                     "📝 Опубликована сводка"
                 )
-                stats_post = create_stats_report()
 
-                send_post(
-                    None,
-                    stats_post
-                )
+                # stats_post = create_stats_report()
 
-                print(
-                    "📊 Статистика опубликована"
-                )
+                # send_post(
+                #     None,
+                #     stats_post
+                # )
+
+                # print(
+                #     "📊 Статистика опубликована"
+                # )
 
         except Exception as e:
 
