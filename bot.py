@@ -51,14 +51,7 @@ RSS_FEEDS = [
     "https://news.mail.ru/rss/",
     "https://www.bfm.ru/news.rss",
 
-    # Крупные СМИ
-    "https://www.fontanka.ru/fontanka.rss",
-    "https://www.47news.ru/export/rss.xml",
-    "https://www.ntv.ru/novosti/rss/",
-    "https://www.vesti.ru/vesti.rss",
-    "https://rg.ru/xml/index.xml",
-    "https://news.mail.ru/rss/",
-    "https://www.bfm.ru/news.rss",
+
 
     # Регионы / ЧП
     "https://www.e1.ru/text/rss.region.xml",
@@ -284,17 +277,37 @@ def clean_title(title):
     title = title.lower()
 
     bad_words = [
+
         "в россии",
         "в москве",
         "сегодня",
-        "произошло"
+        "произошло",
+        "случилось",
+        "появилось",
+        "сообщается",
+        "стало известно",
+        "опубликовано",
+        "видео",
+        "фото",
+        "последствия",
+        "подробности",
+        "очевидцы",
+        "экстренные службы",
+        "на месте",
+        ":",
+        ",",
+        ".",
+        "!"
     ]
 
     for word in bad_words:
 
-        title = title.replace(word, "")
+        title = title.replace(
+            word,
+            ""
+        )
 
-    return title.strip()
+    return " ".join(title.split())
 
 
 def is_similar(title):
@@ -311,7 +324,8 @@ def is_similar(title):
 
         common_words = words1.intersection(words2)
 
-        if len(common_words) >= 4:
+        # если совпало много слов
+        if len(common_words) >= 3:
             return True
 
         similarity = SequenceMatcher(
@@ -320,7 +334,8 @@ def is_similar(title):
             old_title
         ).ratio()
 
-        if similarity > 0.75:
+        # очень жёсткий фильтр
+        if similarity >= 0.82:
             return True
 
     return False
@@ -595,8 +610,7 @@ def get_news():
 
                     continue
 
-                sent_links.add(link)
-                sent_titles.append(title)
+
 
                 save_memory(link)
 
@@ -622,6 +636,9 @@ def get_news():
                     link,
                     city
                 )
+
+                sent_links.add(link)
+                sent_titles.append(title)
 
                 news.append(
                     (photo, post)
