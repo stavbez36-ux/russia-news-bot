@@ -320,11 +320,14 @@ def make_news_hash(title):
         if len(word) > 3
     ]
 
-    # сортируем
-    words = sorted(words)
+    # убираем дубли слов
+    words = list(set(words))
 
-    # берём первые 6 слов
-    return " ".join(words[:6])
+    # НЕ сортируем
+    # берём первые важные слова
+    words = words[:7]
+
+    return " ".join(words)
 
 
 def is_similar(title):
@@ -581,6 +584,8 @@ def get_news():
 
     news = []
 
+    local_hashes = set()
+
     for feed_url in RSS_FEEDS:
 
         try:
@@ -623,6 +628,7 @@ def get_news():
                 if (
                         is_similar(title)
                         or news_hash in recent_hashes
+                        or news_hash in local_hashes
                 ):
                     print(
                         "⛔ Дубль:",
@@ -636,6 +642,8 @@ def get_news():
                 photo = get_image_from_article(
                     link
                 )
+
+                original_title = title
 
                 title = ai_rewrite(
                     title,
@@ -657,8 +665,9 @@ def get_news():
                 )
 
                 sent_links.add(link)
-                sent_titles.append(title)
+                sent_titles.append(original_title)
                 recent_hashes.add(news_hash)
+                local_hashes.add(news_hash)
 
                 news.append(
                     (photo, post)
