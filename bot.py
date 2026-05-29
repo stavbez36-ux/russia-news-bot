@@ -30,12 +30,10 @@ RSS_FEEDS = [
 
     # Политика / события
     "https://iz.ru/xml/rss/all.xml",
-    "https://www.gazeta.ru/export/rss/lenta.xml",
     "https://ura.news/rss",
 
     # Экстренные новости
     "https://tvzvezda.ru/export/rss/news.xml",
-    "https://argumenti.ru/rss/news",
     "https://vm.ru/rss/news",
 
     # Криминал / ДТП
@@ -48,8 +46,7 @@ RSS_FEEDS = [
     "https://www.ntv.ru/novosti/rss/",
     "https://www.vesti.ru/vesti.rss",
     "https://rg.ru/xml/index.xml",
-    "https://news.mail.ru/rss/",
-    "https://www.bfm.ru/news.rss",
+
 
 
 
@@ -66,6 +63,7 @@ MEMORY_FILE = "sent_news.txt"
 
 sent_links = set()
 sent_titles = []
+recent_hashes = set()
 
 category_stats = {}
 city_stats = {}
@@ -308,6 +306,25 @@ def clean_title(title):
         )
 
     return " ".join(title.split())
+
+def make_news_hash(title):
+
+    title = clean_title(title)
+
+    words = title.split()
+
+    # убираем короткие слова
+    words = [
+        word
+        for word in words
+        if len(word) > 3
+    ]
+
+    # сортируем
+    words = sorted(words)
+
+    # берём первые 6 слов
+    return " ".join(words[:6])
 
 
 def is_similar(title):
@@ -601,14 +618,12 @@ def get_news():
                 if not category:
                     continue
 
-                if is_similar(title):
+                news_hash = make_news_hash(title)
 
-                    print(
-                        "⛔ Дубль:",
-                        title
-                    )
-
-                    continue
+                if (
+                        is_similar(title)
+                        or news_hash in recent_hashes
+                ):
 
 
 
@@ -639,6 +654,7 @@ def get_news():
 
                 sent_links.add(link)
                 sent_titles.append(title)
+                recent_hashes.add(news_hash)
 
                 news.append(
                     (photo, post)
