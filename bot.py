@@ -801,6 +801,7 @@ async def main():
 
             all_news = news
 
+            # публикуем новости
             for photo, post in all_news:
 
                 send_post(photo, post)
@@ -820,12 +821,14 @@ async def main():
                     MIN_POST_INTERVAL
                 )
 
+            # сводка только ОДИН раз
             digest = create_digest(
                 all_news,
                 max_items=10
             )
 
             if digest:
+
                 send_post(
                     None,
                     digest
@@ -834,17 +837,6 @@ async def main():
                 print(
                     "📝 Опубликована сводка"
                 )
-
-                # stats_post = create_stats_report()
-
-                # send_post(
-                #     None,
-                #     stats_post
-                # )
-
-                # print(
-                #     "📊 Статистика опубликована"
-                # )
 
         except Exception as e:
 
