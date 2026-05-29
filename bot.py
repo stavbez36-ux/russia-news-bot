@@ -624,8 +624,12 @@ def get_news():
                         is_similar(title)
                         or news_hash in recent_hashes
                 ):
+                    print(
+                        "⛔ Дубль:",
+                        title
+                    )
 
-
+                    continue
 
                 save_memory(link)
 
