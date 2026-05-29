@@ -584,7 +584,9 @@ def get_news():
 
     news = []
 
+    # локальные антидубли
     local_hashes = set()
+    local_links = set()
 
     for feed_url in RSS_FEEDS:
 
@@ -597,8 +599,12 @@ def get_news():
                 link = entry.link.strip()
                 title = entry.title.strip()
 
-                # ссылка уже была
-                if link in sent_links:
+                # уже отправляли ссылку
+                if (
+                    not link
+                    or link in sent_links
+                    or link in local_links
+                ):
                     continue
 
                 full_text = (
@@ -619,6 +625,7 @@ def get_news():
                 ):
                     continue
 
+                # категория
                 category = detect_category(
                     full_text
                 )
@@ -631,43 +638,41 @@ def get_news():
                     title
                 )
 
-                # мощный антидубль
+                # антидубли
                 if (
                     is_similar(title)
                     or news_hash in recent_hashes
                     or news_hash in local_hashes
-                    or link in sent_links
                 ):
-
-                    print(
-                        "⛔ Дубль:",
-                        title
-                    )
 
                     continue
 
-                # сохраняем оригинал
+                # сохраняем оригинальный заголовок
                 original_title = title
 
-                # AI rewrite
+                # переписываем
                 title = ai_rewrite(
                     title,
                     category
                 )
 
+                # фото
                 photo = get_image_from_article(
                     link
                 )
 
+                # город
                 city = detect_city(
                     original_title
                 )
 
+                # статистика
                 update_stats(
                     category,
                     city
                 )
 
+                # пост
                 post = create_post(
                     category,
                     title,
@@ -675,8 +680,10 @@ def get_news():
                     city
                 )
 
-                # сохраняем
+                # сохраняем в память
                 sent_links.add(link)
+
+                local_links.add(link)
 
                 sent_titles.append(
                     original_title
@@ -692,13 +699,14 @@ def get_news():
 
                 save_memory(link)
 
-                # защита от разрастания памяти
+                # защита памяти
                 if len(recent_hashes) > 1000:
                     recent_hashes.clear()
 
                 if len(sent_titles) > 2000:
                     sent_titles.clear()
 
+                # добавляем новость
                 news.append(
                     (photo, post)
                 )
