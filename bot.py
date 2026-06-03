@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
 
 
-TOKEN = "8925579420:AAGyCsP_FNRMkO6YBNdSvR2Tzb7cIpdZyoE"
+TOKEN = "8891559557:AAF5nDxMJNwkLgvdeM8ejejKutCDT2GPF-Q"
 CHANNEL_ID = "-1004260226565"
 
 
