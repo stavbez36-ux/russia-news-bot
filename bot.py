@@ -7,8 +7,10 @@ from bs4 import BeautifulSoup
 from difflib import SequenceMatcher
 
 
-TOKEN = "8925579420:AAHs8DaIO7gDPcdwfvShV8bU-JKI6Xy8aJY"
-CHANNEL_ID = "-1004260226565"
+import os
+
+TOKEN = os.getenv("TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 
 RSS_FEEDS = [
