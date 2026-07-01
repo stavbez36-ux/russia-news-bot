@@ -24,7 +24,7 @@ RSS_FEEDS = [
     "https://www.mk.ru/rss/index.xml",
     "https://aif.ru/rss/all.php",
     "https://ren.tv/export/yandex-news.rss",
-    "https://life.ru/xml/feed.xml",
+    
 
     # Регионы
     "https://bloknot.ru/rss",
@@ -35,6 +35,7 @@ RSS_FEEDS = [
     # Политика
     "https://iz.ru/xml/rss/all.xml",
     "https://ura.news/rss",
+    "https://rg.ru/xml/index.xml",
 
     # Экстренные
     "https://tvzvezda.ru/export/rss/news.xml",
@@ -49,7 +50,7 @@ RSS_FEEDS = [
     "https://www.47news.ru/export/rss.xml",
     "https://www.ntv.ru/novosti/rss/",
     "https://www.vesti.ru/vesti.rss",
-    "https://rg.ru/xml/index.xml",
+    
 
     # Регионы
     "https://www.e1.ru/text/rss.region.xml",
