@@ -16,7 +16,7 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 RSS_FEEDS = [
 
     # Россия
-    "https://lenta.ru/rss/news",
+   
     "https://ria.ru/export/rss2/archive/index.xml",
     "https://tass.ru/rss/v2.xml",
 
